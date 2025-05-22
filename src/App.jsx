@@ -1,5 +1,5 @@
 import './App.css'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const Xilef = {
   Productivity: [
@@ -37,7 +37,45 @@ const Ana = {
 
 function App() {
   const [option, setOption] = useState(null)
-  const [activities, setActivities] = useState({ productivity: [], ocio: [] })
+  const [pending, setPending] = useState(() => {
+    const stored = localStorage.getItem('pending')
+    return stored ? JSON.parse(stored) : { productivity: [], ocio: [] }
+  })
+  const [achievedP, setAchievedP] = useState(() => {
+    const stored = localStorage.getItem('achievedP')
+    return stored ? JSON.parse(stored) : []
+  })
+  const [achievedO, setAchievedO] = useState(() => {
+    const stored = localStorage.getItem('achievedO')
+    return stored ? JSON.parse(stored) : []
+  })
+
+  // Cargar datos del localStorage al montar la página
+  useEffect(() => {
+    const storedP = localStorage.getItem('pending')
+    const storedAP = localStorage.getItem('achievedP')
+    const storedAO = localStorage.getItem('achievedO')
+    if (storedP) {
+      try {
+        setPending(JSON.parse(storedP))
+        setAchievedP(JSON.parse(storedAP))
+        setAchievedO(JSON.parse(storedAO))
+      } catch (e) {
+        console.error('Error al parsear datos de localStorage:', e)
+      }
+    }
+  }, [])
+
+  // Guardar cambios en localStorage cuando las actividades cambien
+  useEffect(() => {
+    localStorage.setItem('pending', JSON.stringify(pending))
+  }, [pending])
+  useEffect(() => {
+    localStorage.setItem('achievedP', JSON.stringify(achievedP))
+  }, [achievedP])
+  useEffect(() => {
+    localStorage.setItem('achievedO', JSON.stringify(achievedO))
+  }, [achievedO])
 
   const getRandomItems = (array, count) => {
     const shuffled = [...array].sort(() => 0.5 - Math.random())
@@ -52,14 +90,26 @@ function App() {
     const randomProductivity = getRandomItems(persona.Productivity, 2)
     const randomOcio = getRandomItems(persona.Ocio, 2)
 
-    setActivities({
+    setPending({
       productivity: randomProductivity,
       ocio: randomOcio
     })
+
+    localStorage.setItem('pending', {
+      productivity: randomProductivity,
+      ocio: randomOcio
+    })
+    console.log(localStorage.getItem('pending'))
   }
 
   const handleChange = (e) => {
     setOption(e.target.value)
+  }
+
+  const resetApp = () => {
+    setPending({ productivity: [], ocio: [] })
+    setAchievedP([])
+    setAchievedO([])
   }
 
   return (
@@ -68,8 +118,8 @@ function App() {
         <h1 className="text-3xl font-bold">Daily task</h1>
       </div>
 
-      <div className="bg-blue-400 w-3/4 m-4 p-4 rounded-2xl mx-auto">
-        <h2 className="text-center font-semibold text-xl mb-2">Actividades</h2>
+      <div className="bg-blue-400 w-9/10 md:w-2/4 m-4 p-4 rounded-2xl mx-auto">
+        <h1 className="text-center font-semibold text-xl mb-2">Selección</h1>
 
         <div className="flex flex-row justify-center mb-4">
           <form className="flex flex-row gap-4">
@@ -102,29 +152,83 @@ function App() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-center">
+        <h1 className='text-center font-semibold text-xl'>Tareas pendientes</h1>
+
+        <div className="grid grid-cols-2 gap-4 text-center my-2">
           <div>
             <h3 className="font-semibold underline">Productividad</h3>
-            <ul>
-              {activities.productivity.map((act, index) => (
-                <li key={index}>{act}</li>
+            <ul className='grid grid-cols-1'>
+              {pending.productivity.map((act, index) => (
+                <button className={`bg-gray-400 p-2 border-x-2 border-t-2 ${(pending.productivity.length === 1 || index === 1) && `border-b-2`} `}
+                        onClick={() => setAchievedP(prev => [...prev, act]) + 
+                          setPending(prev => ({
+                          ...prev,
+                          productivity: prev.productivity.filter(item => item !== act)
+                        }))}>
+                  <li key={index}>{act}</li>
+                </button>
               ))}
             </ul>
           </div>
 
           <div>
             <h3 className="font-semibold underline">Ocio</h3>
-            <ul>
-              {activities.ocio.map((act, index) => (
-                <li key={index}>{act}</li>
+            <ul className='grid grid-cols-1'>
+              {pending.ocio.map((act, index) => (
+                <button className={`bg-gray-400 p-2 border-x-2 border-t-2 ${(pending.ocio.length === 1 || index === 1) && `border-b-2`} `}
+                        onClick={() => setAchievedO(prev => [...prev, act]) + 
+                        setPending(prev => ({
+                          ...prev,
+                          ocio: prev.ocio.filter(item => item !== act)
+                        }))}>
+                  <li key={index}>{act}</li>
+                </button>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <h1 className='text-center font-semibold text-xl m-2'>Tareas terminadas</h1>
+
+        <div className="grid grid-cols-2 gap-4 text-center my-2">
+          <div>
+            <h3 className="font-semibold underline">Productividad</h3>
+            <ul className='grid grid-cols-1'>
+              {achievedP.map((act, index) => (
+                <button className={`bg-green-400 p-2 border-x-2 border-t-2 ${(achievedP.length === 1 || index === 1) && `border-b-2`} `}
+                        //onClick={() => setPending({
+                        //  productivity: pending.productivity + act
+                        //})}
+                        >
+                  <li key={index}>{act}</li>
+                </button>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold underline">Ocio</h3>
+            <ul className='grid grid-cols-1'>
+              {achievedO.map((act, index) => (
+                <button className={`bg-green-400 p-2 border-x-2 border-t-2 ${(achievedO.length === 1 || index === 1) && `border-b-2`}`}
+                        //onClick={() => setPending({
+                        //  ocio: pending.ocio + act
+                        //})}
+                        >
+                  <li key={index}>{act}</li>
+                </button>
               ))}
             </ul>
           </div>
         </div>
       </div>
+
+      <div className='w-9/10 md:w-2/4 place-self-center'>
+        <button className='bg-red-500 rounded-2xl p-2'
+                onClick={resetApp}>Reiniciar</button>
+      </div>
     </>
   )
 }
-
 
 export default App
